@@ -1,34 +1,86 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const excelService = require('../services/excelService');
+const User = require('../models/User');
 
-const register = async (req, res) => {
+exports.register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
-    const users = await excelService.getWorksheetData(process.env.EXCEL_FILE_ID, 'Users');
-    const existingUser = users.values.find(row => row[2] === email);
-    if (existingUser) return res.status(400).json({ message: 'User already exists' });
+    const { username, email, password } = req.body;
+
+    // Verificar se o usuário já existe
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: 'Email já está em uso' });
+    }
+
+    // Criptografar a senha
     const hashedPassword = await bcrypt.hash(password, 10);
-    const nextId = users.values.length;
-    const newUser = [nextId, name, email, hashedPassword];
-    await excelService.updateWorksheetData(process.env.EXCEL_FILE_ID, 'Users', `A${nextId + 1}:D${nextId + 1}`, [newUser]);
-    res.status(201).json({ message: 'User registered' });
+
+    // Criar o novo usuário
+    const newUser = await User.create({
+      username,
+      email,
+      password: hashedPassword
+    });
+
+    res.status(201).json({
+      message: 'Usuário registrado com sucesso',
+      user: newUser // A senha já é removida automaticamente pelo método toJSON()
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Error registering user' });
+    console.error('Error in user registration:', error);
+    res.status(500).json({ 
+      message: 'Erro ao registrar usuário',
+      error: error.message 
+    });
   }
 };
 
-const login = async (req, res) => {
+exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const users = await excelService.getWorksheetData(process.env.EXCEL_FILE_ID, 'Users');
-    const user = users.values.find(row => row[2] === email);
-    if (!user || !await bcrypt.compare(password, user[3])) return res.status(401).json({ message: 'Invalid credentials' });
-    const token = jwt.sign({ id: user[0] }, process.env.JWT_SECRET);
-    res.json({ token });
+
+    // Buscar usuário pelo email (incluindo a senha para comparação)
+    const user = await User.findOne({ email }).select('+password');
+    if (!user) {
+      return res.status(401).json({ message: 'Credenciais inválidas' });
+    }
+
+    // Verificar a senha
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: 'Credenciais inválidas' });
+    }
+
+    // Gerar token JWT
+    const token = jwt.sign(
+      { userId: user._id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    res.json({
+      message: 'Login realizado com sucesso',
+      token,
+      userId: user._id
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Error logging in' });
+    console.error('Error in user login:', error);
+    res.status(500).json({ message: 'Erro ao realizar login' });
   }
 };
 
-module.exports = { register, login };
+exports.getUserProfile = async (req, res) => {
+  try {
+    const userId = req.user.userId; // Obtido do middleware de autenticação
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'Usuário não encontrado' });
+    }
+
+    res.json(user); // A senha já é removida automaticamente pelo método toJSON()
+  } catch (error) {
+    console.error('Error getting user profile:', error);
+    res.status(500).json({ message: 'Erro ao buscar perfil do usuário' });
+  }
+};

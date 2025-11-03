@@ -1,25 +1,23 @@
-const axios = require('axios');
+const { google } = require('googleapis');
+const fs = require('fs');
+const path = require('path');
 
-const getAccessToken = async () => {
-  const response = await axios.post(`https://login.microsoftonline.com/${process.env.MICROSOFT_TENANT_ID}/oauth2/v2.0/token`, {
-    client_id: process.env.MICROSOFT_CLIENT_ID,
-    client_secret: process.env.MICROSOFT_CLIENT_SECRET,
-    scope: 'https://graph.microsoft.com/.default',
-    grant_type: 'client_credentials'
+const getGoogleSheetsClient = () => {
+  const credentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS || './credentials.json';
+  
+  // Verificar se o arquivo existe
+  if (!fs.existsSync(credentialsPath)) {
+    console.error(`❌ Arquivo de credenciais não encontrado: ${credentialsPath}`);
+    console.error('📋 Siga os passos no README.md para configurar as credenciais do Google');
+    throw new Error('Credenciais do Google não configuradas. Veja README.md para instruções.');
+  }
+
+  const auth = new google.auth.GoogleAuth({
+    keyFile: credentialsPath,
+    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   });
-  return response.data.access_token;
+
+  return google.sheets({ version: 'v4', auth });
 };
 
-const getClient = async () => {
-  const token = await getAccessToken();
-  const { Client } = require('@microsoft/microsoft-graph-client');
-  require('isomorphic-fetch');
-  const client = Client.init({
-    authProvider: (done) => {
-      done(null, token);
-    }
-  });
-  return client;
-};
-
-module.exports = { getClient };
+module.exports = { getGoogleSheetsClient };

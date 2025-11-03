@@ -1,25 +1,108 @@
-const excelService = require('../services/excelService');
+const Subscription = require('../models/Subscription');
+const moment = require('moment');
 
-const getSubscriptions = async (req, res) => {
+exports.getSubscription = async (req, res) => {
   try {
-    const subscriptions = await excelService.getWorksheetData(process.env.EXCEL_FILE_ID, 'Subscriptions');
-    res.json(subscriptions.values);
+    const userId = req.user.userId; // Obtido do middleware de autenticação
+
+    // Buscar a subscrição ativa do usuário
+    const subscription = await Subscription.findOne({ 
+      userId, 
+      status: 'active' 
+    }).populate('userId', 'username email');
+
+    if (!subscription) {
+      return res.status(404).json({ message: 'Nenhuma subscrição encontrada' });
+    }
+
+    res.json({
+      subscription,
+      isValid: subscription.isValid(),
+      daysRemaining: subscription.daysRemaining()
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching subscriptions' });
+    console.error('Error getting subscription:', error);
+    res.status(500).json({ message: 'Erro ao buscar informações de subscrição' });
   }
 };
 
-const addSubscription = async (req, res) => {
+exports.createSubscription = async (req, res) => {
   try {
-    const { userId, plan } = req.body;
-    const subscriptions = await excelService.getWorksheetData(process.env.EXCEL_FILE_ID, 'Subscriptions');
-    const nextId = subscriptions.values.length;
-    const newSub = [nextId, userId, plan, new Date().toISOString()];
-    await excelService.updateWorksheetData(process.env.EXCEL_FILE_ID, 'Subscriptions', `A${nextId + 1}:D${nextId + 1}`, [newSub]);
-    res.status(201).json({ message: 'Subscription added' });
+    const userId = req.user.userId; // Obtido do middleware de autenticação
+    const { plan } = req.body;
+
+    // Validar o plano
+    if (!['monthly', 'annual'].includes(plan)) {
+      return res.status(400).json({ message: 'Plano inválido. Escolha "monthly" ou "annual"' });
+    }
+
+    // Verificar se já existe uma subscrição ativa
+    const existingSubscription = await Subscription.findOne({ 
+      userId, 
+      status: 'active' 
+    });
+
+    if (existingSubscription) {
+      return res.status(400).json({ message: 'Usuário já possui uma subscrição ativa' });
+    }
+
+    // Determinar a data de término baseada no plano escolhido
+    const startDate = new Date();
+    const endDate = moment().add(plan === 'monthly' ? 1 : 12, 'months').toDate();
+
+    // Criar a nova subscrição
+    const newSubscription = await Subscription.create({
+      userId,
+      plan,
+      startDate,
+      endDate
+    });
+
+    res.status(201).json({
+      message: 'Subscrição criada com sucesso',
+      subscription: newSubscription
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Error adding subscription' });
+    console.error('Error creating subscription:', error);
+    res.status(500).json({ 
+      message: 'Erro ao criar subscrição',
+      error: error.message 
+    });
   }
 };
 
-module.exports = { getSubscriptions, addSubscription };
+exports.renewSubscription = async (req, res) => {
+  try {
+    const userId = req.user.userId; // Obtido do middleware de autenticação
+    const { subscriptionId } = req.params;
+
+    // Verificar se a subscrição existe e pertence ao usuário
+    const subscription = await Subscription.findById(subscriptionId);
+
+    if (!subscription) {
+      return res.status(404).json({ message: 'Subscrição não encontrada' });
+    }
+
+    if (subscription.userId.toString() !== userId) {
+      return res.status(403).json({ message: 'Acesso não autorizado a esta subscrição' });
+    }
+
+    // Calcular nova data de término
+    const currentEndDate = subscription.endDate;
+    const monthsToAdd = subscription.plan === 'monthly' ? 1 : 12;
+    const newEndDate = moment(currentEndDate).add(monthsToAdd, 'months').toDate();
+
+    // Atualizar a subscrição
+    subscription.endDate = newEndDate;
+    subscription.status = 'active';
+    await subscription.save();
+
+    res.json({
+      message: 'Subscrição renovada com sucesso',
+      subscription
+    });
+  } catch (error) {
+    console.error('Error renewing subscription:', error);
+    res.status(500).json({ message: 'Erro ao renovar subscrição' });
+  }
+};

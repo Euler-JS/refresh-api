@@ -1,7 +1,7 @@
 {
-  "name": "api-excel-online",
+  "name": "refresh-api",
   "version": "1.0.0",
-  "description": "API que utiliza Excel Online como base de dados",
+  "description": "API que utiliza MongoDB como base de dados",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
@@ -12,11 +12,11 @@
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "exceljs": "^4.4.0",
     "express": "^4.18.2",
+    "googleapis": "^118.0.0",
     "jsonwebtoken": "^9.0.2",
-    "microsoft-graph-client": "^3.0.7",
-    "moment": "^2.29.4"
+    "moment": "^2.29.4",
+    "mongoose": "^8.19.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
