@@ -22,9 +22,17 @@ exports.register = async (req, res) => {
       password: hashedPassword
     });
 
+    // Gerar token JWT
+    const token = jwt.sign(
+      { userId: newUser._id, email: newUser.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
     res.status(201).json({
       message: 'Usuário registrado com sucesso',
-      user: newUser // A senha já é removida automaticamente pelo método toJSON()
+      token,
+      userId: newUser._id.toString()
     });
   } catch (error) {
     console.error('Error in user registration:', error);
@@ -61,7 +69,7 @@ exports.login = async (req, res) => {
     res.json({
       message: 'Login realizado com sucesso',
       token,
-      userId: user._id
+      userId: user._id.toString()
     });
   } catch (error) {
     console.error('Error in user login:', error);

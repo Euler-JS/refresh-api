@@ -70,14 +70,8 @@ Perfeito! Aqui está o **payload completo de todas as rotas**:
 ```json
 {
   "message": "Usuário registrado com sucesso",
-  "user": {
-    "_id": "...",
-    "username": "joao",
-    "email": "joao@example.com",
-    "status": "active",
-    "createdAt": "2025-11-03T...",
-    "updatedAt": "2025-11-03T..."
-  }
+  "token": "eyJhbGciOiJIUzI1NiIs...",
+  "userId": "60d5ec49c1234567890..."
 }
 ```
 
