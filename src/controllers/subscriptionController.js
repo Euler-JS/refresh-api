@@ -9,14 +9,21 @@ exports.getSubscription = async (req, res) => {
     const subscription = await Subscription.findOne({ 
       userId, 
       status: 'active' 
-    }).populate('userId', 'username email');
+    });
 
     if (!subscription) {
       return res.status(404).json({ message: 'Nenhuma subscrição encontrada' });
     }
 
     res.json({
-      subscription,
+      subscription: {
+        _id: subscription._id,
+        plan: subscription.plan,
+        startDate: subscription.startDate,
+        endDate: subscription.endDate,
+        status: subscription.status,
+        userId: subscription.userId
+      },
       isValid: subscription.isValid(),
       daysRemaining: subscription.daysRemaining()
     });
@@ -60,7 +67,16 @@ exports.createSubscription = async (req, res) => {
 
     res.status(201).json({
       message: 'Subscrição criada com sucesso',
-      subscription: newSubscription
+      subscription: {
+        _id: newSubscription._id,
+        plan: newSubscription.plan,
+        startDate: newSubscription.startDate,
+        endDate: newSubscription.endDate,
+        status: newSubscription.status,
+        userId: newSubscription.userId
+      },
+      isValid: newSubscription.isValid(),
+      daysRemaining: newSubscription.daysRemaining()
     });
   } catch (error) {
     console.error('Error creating subscription:', error);
@@ -99,7 +115,16 @@ exports.renewSubscription = async (req, res) => {
 
     res.json({
       message: 'Subscrição renovada com sucesso',
-      subscription
+      subscription: {
+        _id: subscription._id,
+        plan: subscription.plan,
+        startDate: subscription.startDate,
+        endDate: subscription.endDate,
+        status: subscription.status,
+        userId: subscription.userId
+      },
+      isValid: subscription.isValid(),
+      daysRemaining: subscription.daysRemaining()
     });
   } catch (error) {
     console.error('Error renewing subscription:', error);
