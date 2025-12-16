@@ -10,6 +10,7 @@ const connectDB = require('./config/database');
 const userRoutes = require('./routes/userRoutes');
 const subscriptionRoutes = require('./routes/subscriptionRoutes');
 const planRoutes = require('./routes/planRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 
 // Conectar ao MongoDB
 connectDB();
@@ -26,6 +27,7 @@ app.use(express.json());
 app.use('/api/users', userRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/plans', planRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // Rota de status
 app.get('/api/status', (req, res) => {
