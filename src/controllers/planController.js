@@ -70,10 +70,10 @@ exports.createPlan = async (req, res) => {
       });
     }
 
-    if (!['monthly', 'annual'].includes(type)) {
+    if (!['monthly', 'quarterly', 'annual'].includes(type)) {
       return res.status(400).json({ 
         success: false,
-        message: 'Tipo de plano inválido. Use "monthly" ou "annual"' 
+        message: 'Tipo de plano inválido. Use "monthly", "quarterly" ou "annual"' 
       });
     }
 

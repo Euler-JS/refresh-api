@@ -12,7 +12,7 @@ exports.getSubscription = async (req, res) => {
     });
 
     if (!subscription) {
-      return res.status(404).json({ message: 'Nenhuma subscrição encontrada' });
+      return res.status(404).json({ message: 'Nenhuma subscrição ativa encontrada' });
     }
 
     res.json({
@@ -21,11 +21,10 @@ exports.getSubscription = async (req, res) => {
         plan: subscription.plan,
         startDate: subscription.startDate,
         endDate: subscription.endDate,
-        status: subscription.status,
-        userId: subscription.userId
+        status: subscription.status
       },
-      isValid: subscription.isValid(),
-      daysRemaining: subscription.daysRemaining()
+      daysRemaining: subscription.daysRemaining(),
+      isValid: subscription.isValid()
     });
   } catch (error) {
     console.error('Error getting subscription:', error);
@@ -66,17 +65,15 @@ exports.createSubscription = async (req, res) => {
     });
 
     res.status(201).json({
-      message: 'Subscrição criada com sucesso',
       subscription: {
         _id: newSubscription._id,
         plan: newSubscription.plan,
         startDate: newSubscription.startDate,
         endDate: newSubscription.endDate,
-        status: newSubscription.status,
-        userId: newSubscription.userId
+        status: newSubscription.status
       },
-      isValid: newSubscription.isValid(),
-      daysRemaining: newSubscription.daysRemaining()
+      daysRemaining: newSubscription.daysRemaining(),
+      isValid: newSubscription.isValid()
     });
   } catch (error) {
     console.error('Error creating subscription:', error);
@@ -114,17 +111,15 @@ exports.renewSubscription = async (req, res) => {
     await subscription.save();
 
     res.json({
-      message: 'Subscrição renovada com sucesso',
       subscription: {
         _id: subscription._id,
         plan: subscription.plan,
         startDate: subscription.startDate,
         endDate: subscription.endDate,
-        status: subscription.status,
-        userId: subscription.userId
+        status: subscription.status
       },
-      isValid: subscription.isValid(),
-      daysRemaining: subscription.daysRemaining()
+      daysRemaining: subscription.daysRemaining(),
+      isValid: subscription.isValid()
     });
   } catch (error) {
     console.error('Error renewing subscription:', error);

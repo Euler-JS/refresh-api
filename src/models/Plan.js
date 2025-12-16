@@ -19,7 +19,7 @@ const planSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['monthly', 'annual'],
+    enum: ['monthly', 'quarterly', 'annual'],
     required: [true, 'Tipo do plano é obrigatório']
   },
   isActive: {

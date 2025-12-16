@@ -20,7 +20,12 @@ const PORT = process.env.PORT || 3000;
 console.log(`Server will start on port: ${PORT}`);
 
 // Middlewares
-app.use(cors());
+// Configuração CORS para aceitar requisições do Flutter
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
 // Rotas
