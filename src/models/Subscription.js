@@ -22,8 +22,24 @@ const subscriptionSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['active', 'expired', 'cancelled'],
-    default: 'active'
+    enum: ['pending_payment', 'active', 'expired', 'cancelled'],
+    default: 'pending_payment'
+  },
+  paymentId: {
+    type: String,
+    sparse: true
+  },
+  paymentReference: {
+    type: String,
+    sparse: true
+  },
+  paymentStatus: {
+    type: String,
+    enum: ['pending', 'paid', 'failed', 'cancelled'],
+    default: 'pending'
+  },
+  checkoutUrl: {
+    type: String
   }
 }, {
   timestamps: true
