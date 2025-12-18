@@ -23,6 +23,8 @@ exports.getSubscription = async (req, res) => {
       });
     }
 
+    console.log(`Found subscription for user ${userId}:`, subscription);
+
     // Se a subscrição está pendente de pagamento, verificar status no PaySuite
     if (subscription.status === 'pending_payment' && subscription.paymentId) {
       try {
@@ -36,10 +38,13 @@ exports.getSubscription = async (req, res) => {
           }
         );
 
+        console.log('PaySuite payment status response:', paymentResponse.data);
+
         if (paymentResponse.data.status === 'success') {
           const paymentData = paymentResponse.data.data;
           
-          // Verificar se o pagamento foi confirmado
+          // PaySuite não retorna status explícito no GET
+          // Se transaction existe (não é null), significa que o pagamento foi processado
           if (paymentData.transaction !== null && paymentData.transaction !== undefined) {
             // Pagamento confirmado - ativar subscrição
             subscription.paymentStatus = 'paid';
@@ -47,9 +52,8 @@ exports.getSubscription = async (req, res) => {
             await subscription.save();
             console.log(`Subscrição ${subscription._id} ativada automaticamente após verificação de pagamento`);
           } else {
-            // Atualizar status do PaySuite se mudou
-            subscription.paymentStatus = paymentResponse.data.data.status || 'pending';
-            await subscription.save();
+            // Transaction ainda null - pagamento ainda pendente
+            console.log(`Pagamento ${subscription.paymentId} ainda pendente (transaction: null)`);
           }
         }
       } catch (error) {
@@ -133,8 +137,8 @@ exports.createSubscription = async (req, res) => {
           if (paymentResponse.data.status === 'success') {
             const paymentData = paymentResponse.data.data;
             
-            // Se o pagamento foi concluído, ativar a subscrição
-            if (paymentData.status === 'paid') {
+            // Se transaction existe e está completed, o pagamento foi concluído
+            if (paymentData.transaction !== null && paymentData.transaction !== undefined) {
               existingSubscription.status = 'active';
               existingSubscription.paymentStatus = 'paid';
               await existingSubscription.save();
