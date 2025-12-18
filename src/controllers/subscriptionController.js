@@ -9,17 +9,22 @@ const PAYSUITE_TOKEN = process.env.PAYSUITE_TOKEN;
 
 exports.getSubscription = async (req, res) => {
   try {
-    const userId = req.user.userId; // Obtido do middleware de autenticação
+    const userId = req.user.userId;
 
-    // Buscar a subscrição ativa do usuário
+    // Buscar subscrição ativa ou pendente (mais recente)
     const subscription = await Subscription.findOne({ 
-      userId, 
-      status: 'active' 
-    });
+      userId,
+      status: { $in: ['active', 'pending_payment'] }
+    }).sort({ createdAt: -1 });
 
     if (!subscription) {
-      return res.status(404).json({ message: 'Nenhuma subscrição ativa encontrada' });
+      return res.status(404).json({ 
+        message: 'Nenhuma subscrição encontrada' 
+      });
     }
+
+    // Buscar informações do plano
+    const planData = await Plan.findOne({ type: subscription.plan });
 
     res.json({
       subscription: {
@@ -29,12 +34,27 @@ exports.getSubscription = async (req, res) => {
         endDate: subscription.endDate,
         status: subscription.status
       },
+      payment: {
+        id: subscription.paymentId,
+        reference: subscription.paymentReference,
+        status: subscription.paymentStatus,
+        checkoutUrl: subscription.checkoutUrl
+      },
+      planDetails: planData ? {
+        title: planData.title,
+        description: planData.description,
+        price: planData.price,
+        features: planData.features
+      } : null,
       daysRemaining: subscription.daysRemaining(),
       isValid: subscription.isValid()
     });
   } catch (error) {
     console.error('Error getting subscription:', error);
-    res.status(500).json({ message: 'Erro ao buscar informações de subscrição' });
+    res.status(500).json({ 
+      message: 'Erro ao buscar informações de subscrição',
+      error: error.message 
+    });
   }
 };
 
