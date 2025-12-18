@@ -23,6 +23,41 @@ exports.getSubscription = async (req, res) => {
       });
     }
 
+    // Se a subscrição está pendente de pagamento, verificar status no PaySuite
+    if (subscription.status === 'pending_payment' && subscription.paymentId) {
+      try {
+        const paymentResponse = await axios.get(
+          `${PAYSUITE_BASE_URL}/payments/${subscription.paymentId}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${PAYSUITE_TOKEN}`,
+              'Accept': 'application/json'
+            }
+          }
+        );
+
+        if (paymentResponse.data.status === 'success') {
+          const paymentData = paymentResponse.data.data;
+          
+          // Verificar se o pagamento foi confirmado
+          if (paymentData.transaction !== null && paymentData.transaction !== undefined) {
+            // Pagamento confirmado - ativar subscrição
+            subscription.paymentStatus = 'paid';
+            subscription.status = 'active';
+            await subscription.save();
+            console.log(`Subscrição ${subscription._id} ativada automaticamente após verificação de pagamento`);
+          } else {
+            // Atualizar status do PaySuite se mudou
+            subscription.paymentStatus = paymentResponse.data.data.status || 'pending';
+            await subscription.save();
+          }
+        }
+      } catch (error) {
+        console.log('Erro ao verificar pagamento no PaySuite:', error.message);
+        // Continuar e retornar os dados que temos
+      }
+    }
+
     // Buscar informações do plano
     const planData = await Plan.findOne({ type: subscription.plan });
 
